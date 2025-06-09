@@ -2,11 +2,41 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
 const app = express();
+const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:5174'],
+    credentials: true
+}));
 app.use(express.json());
+// app.use(cookieParser());
+app.use(cookieParser());
+
+const loger = (req, res, next) => {
+    console.log('inside the logger middleware')
+    next();
+}
+
+const verifyToken = (req , res, next) =>{
+
+    const token = req?.cookies.token;
+    console.log('cookie in the middleware',token);
+if(!token){
+    return res.status(401).send({message: 'unauthorized access'})
+}
+jwt.verify(token, process.env.JWT_ACCESS_SECRET, (err, decoded) =>{
+    if(err){
+        return res.status(401).send({message: 'unauthorized access'})
+    }
+    req.decoded = decoded
+     next();
+    // console.log(decoded)
+})
+   
+}
 
 
 
@@ -27,34 +57,96 @@ async function run() {
     await client.connect();
 
     const volunteerCollection = client.db('jobVolunteer').collection('volunteer');
+
+    // jwt token api
+    
+    app.post('/jwt', async(req, res) =>{
+
+        const userData =req.body;
+        const token = jwt.sign(userData, process.env.JWT_ACCESS_SECRET, {expiresIn: '1d'})
+
+// set token
+res.cookie('token', token, {
+    httpOnly: true,
+    secure: false
+})
+        res.send({success: true})
+
+    })
     // volunteer api
-    app.get('/volunteer',async(req, res) =>{
-        const cursor = volunteerCollection.find();
-        const result = await cursor.toArray();
+   app.get('/volunteer', async (req, res) => {
+  const email = req.query.email;
+  const search = req.query.search;
+
+  const query = {};
+
+  if (email) {
+    query.organizerEmail = email;
+  }
+
+  if (search) {
+    query.title = { $regex: search, $options: 'i' }; // Case-insensitive partial match
+  }
+
+  const cursor = volunteerCollection.find(query);
+  const result = await cursor.toArray();
+  res.send(result);
+});
+
+    app.delete('/volunteer/:id', async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) };
+  const result = await volunteerCollection.deleteOne(query);
+  res.send(result);
+});
+
+// update
+app.get('/volunteer/:id', async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) };
+  const result = await volunteerCollection.findOne(query);
+  res.send(result);
+});
+app.put('/volunteer/:id', async (req, res) => {
+  const id = req.params.id;
+  const updatedData = req.body;
+  const filter = { _id: new ObjectId(id) };
+  const updateDoc = {
+    $set: updatedData,
+  };
+  const result = await volunteerCollection.updateOne(filter, updateDoc);
+  res.send(result);
+});
+
+
+
+
+    app.post('/volunteer', async(req,res) =>{
+        const newNeeds = req.body;
+        console.log(newNeeds);
+        const result = await volunteerCollection.insertOne(newNeeds);
         res.send(result);
     })
-    app.get('/volunteer/:id', async(req, res) =>{
-        const id = req.params.id;
-        const query = {_id: new ObjectId(id)}
-        const result = await volunteerCollection.findOne(query);
-        res.send(result);
-    })
+
+
+
+
+
 app.get('/volunteer/volunteer-posts/:id', async (req, res) => {
   const id = req.params.id;
   const query = { _id: new ObjectId(id) };
   const result = await volunteerCollection.findOne(query);
   res.send(result);
 });
-app.delete('/myRequests/:id', async (req, res) => {
-  const id = req.params.id;
-  const query = { _id: new ObjectId(id) };
-  const result = await volunteerRequestsCollection.deleteOne(query);
-  res.send(result);
-});
 
 // 
-app.get('/myRequests', async(req, res) =>{
+app.get('/myRequests',loger,verifyToken, async(req, res) =>{
 const email = req.query.email;
+
+// console.log('inside applications api ',req.cookies)
+if(email !== req.decoded.email){
+    return res.status(403).construct.send({message: 'forbidden access'})
+}
 
 const query ={
 volunteerEmail: email
@@ -62,6 +154,14 @@ volunteerEmail: email
 const result = await volunteerRequestsCollection.find(query).toArray()
 res.send(result);
 })
+app.delete('/myRequests/:id', verifyToken, async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) };
+
+  const result = await volunteerRequestsCollection.deleteOne(query);
+  res.send(result);
+});
+
 
 const volunteerRequestsCollection = client.db('jobVolunteer').collection('volunteerRequests');
 

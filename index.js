@@ -143,7 +143,7 @@ app.get('/volunteer/volunteer-posts/:id', async (req, res) => {
 app.get('/myRequests',loger,verifyToken, async(req, res) =>{
 const email = req.query.email;
 
-// console.log('inside applications api ',req.cookies)
+
 if(email !== req.decoded.email){
     return res.status(403).construct.send({message: 'forbidden access'})
 }
@@ -165,11 +165,11 @@ app.delete('/myRequests/:id', verifyToken, async (req, res) => {
 
 const volunteerRequestsCollection = client.db('jobVolunteer').collection('volunteerRequests');
 
-// Submit a new volunteer request
+
 app.post('/volunteer/volunteer-requests', async (req, res) => {
   const data = req.body;
 
-  // Insert request data into volunteerRequests collection
+
   const result = await volunteerRequestsCollection.insertOne(data);
 
   res.send({ success: true, message: 'Volunteer request submitted', insertedId: result.insertedId });
@@ -184,12 +184,6 @@ app.patch('/volunteer/volunteer-posts/:id', async (req, res) => {
 
   res.send(result);
 });
-
-// 
-
-
-
-
 
 
     // Send a ping to confirm a successful connection

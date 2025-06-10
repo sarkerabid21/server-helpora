@@ -53,7 +53,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
+    
     await client.connect();
 
     const volunteerCollection = client.db('jobVolunteer').collection('volunteer');
@@ -85,7 +85,7 @@ res.cookie('token', token, {
   }
 
   if (search) {
-    query.title = { $regex: search, $options: 'i' }; // Case-insensitive partial match
+    query.title = { $regex: search, $options: 'i' }; 
   }
 
   const cursor = volunteerCollection.find(query);

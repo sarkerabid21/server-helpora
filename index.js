@@ -8,9 +8,11 @@ const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 app.use(cors({
-    origin: ['http://localhost:5174'],
+    origin: ['https://job-portal-97a97.web.app', 'https://volunteer-servers.vercel.app'],
     credentials: true
 }));
+
+
 app.use(express.json());
 // app.use(cookieParser());
 app.use(cookieParser());
@@ -54,7 +56,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     
-    await client.connect();
+    // await client.connect();
 
     const volunteerCollection = client.db('jobVolunteer').collection('volunteer');
 
@@ -68,8 +70,10 @@ async function run() {
 // set token
 res.cookie('token', token, {
     httpOnly: true,
-    secure: false
-})
+    secure: true,           
+    sameSite: 'None'        
+});
+
         res.send({success: true})
 
     })
@@ -140,20 +144,21 @@ app.get('/volunteer/volunteer-posts/:id', async (req, res) => {
 });
 
 // 
-app.get('/myRequests',loger,verifyToken, async(req, res) =>{
-const email = req.query.email;
+app.get('/myRequests', loger, verifyToken, async(req, res) => {
+  console.log('Decoded:', req.decoded);
+  console.log('Email query:', req.query.email);
 
+  const email = req.query.email;
 
-if(email !== req.decoded.email){
-    return res.status(403).construct.send({message: 'forbidden access'})
-}
+  if(email !== req.decoded.email){
+    return res.status(403).send({ message: 'forbidden access' });
+  }
 
-const query ={
-volunteerEmail: email
-}
-const result = await volunteerRequestsCollection.find(query).toArray()
-res.send(result);
-})
+  const query = { volunteerEmail: email };
+  const result = await volunteerRequestsCollection.find(query).toArray();
+  res.send(result);
+});
+
 app.delete('/myRequests/:id', verifyToken, async (req, res) => {
   const id = req.params.id;
   const query = { _id: new ObjectId(id) };
@@ -187,8 +192,8 @@ app.patch('/volunteer/volunteer-posts/:id', async (req, res) => {
 
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();

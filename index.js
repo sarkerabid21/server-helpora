@@ -8,7 +8,9 @@ const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 app.use(cors({
-    origin: ['https://job-portal-97a97.web.app', 'https://volunteer-servers.vercel.app'],
+    origin: ['https://job-portal-97a97.web.app',
+       'https://volunteer-servers.vercel.app',
+       'https://b11a11-server-side-sarkerabid21.vercel.app'],
     credentials: true
 }));
 
@@ -170,7 +172,9 @@ app.delete('/myRequests/:id', verifyToken, async (req, res) => {
 // Get all donations
 app.get('/donations', async (req, res) => {
   try {
-    const donations = await donationsCollection.find().toArray();
+    const country = req.query.country;
+    const query = country ? { country } : {};
+    const donations = await donationsCollection.find(query).toArray();
     res.send(donations);
   } catch (err) {
     res.status(500).send({ error: 'Failed to fetch donations' });

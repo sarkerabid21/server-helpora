@@ -175,12 +175,12 @@ app.get('/donations', async (req, res) => {
   try {
     const country = req.query.country?.trim();
     const query = country
-      ? { country: { $regex: new RegExp(country, 'i') } }
+      ? { country: { $regex: new RegExp(`^${country}$`, 'i') } }
       : {};
 
     const donations = await donationsCollection
       .find(query)
-      .sort({ createdAt: -1 }) // বা _id: -1 যদি createdAt না থাকে
+      .sort({ _id: -1 }) // createdAt না থাকলে _id দিয়ে সঠিক
       .toArray();
 
     res.send(donations);
@@ -189,6 +189,7 @@ app.get('/donations', async (req, res) => {
     res.status(500).send({ error: 'Error fetching donations from database' });
   }
 });
+
 
 
 

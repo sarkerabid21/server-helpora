@@ -171,16 +171,20 @@ app.delete('/myRequests/:id', verifyToken, async (req, res) => {
 });
 // Get all donations
 // Get all donations
-app.get('/donations', async (req, res) => {
+// backend: server.js or app.js
+
+app.get('/donations/:country', async (req, res) => {
   try {
-    const country = req.query.country?.trim();
+    const country = req.params.country?.trim();
+
+    // কেস-ইনসেনসিটিভ ফিল্টারিং
     const query = country
       ? { country: { $regex: new RegExp(`^${country}$`, 'i') } }
       : {};
 
     const donations = await donationsCollection
       .find(query)
-      .sort({ _id: -1 }) // createdAt না থাকলে _id দিয়ে সঠিক
+      .sort({ createdAt: -1 }) // অথবা _id: -1
       .toArray();
 
     res.send(donations);
@@ -189,6 +193,10 @@ app.get('/donations', async (req, res) => {
     res.status(500).send({ error: 'Error fetching donations from database' });
   }
 });
+
+// যদি আপনি আগেরটা রাখতে চান তাহলে এটা রাখতে পারেন
+// app.get('/donations', async (req, res) => {...});
+
 
 
 

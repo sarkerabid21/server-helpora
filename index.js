@@ -173,26 +173,31 @@ app.delete('/myRequests/:id', verifyToken, async (req, res) => {
 // Get all donations
 // backend: server.js or app.js
 
-app.get('/donations/:country', async (req, res) => {
-  try {
-    const country = req.params.country?.trim();
 
-    // কেস-ইনসেনসিটিভ ফিল্টারিং
-    const query = country
-      ? { country: { $regex: new RegExp(`^${country}$`, 'i') } }
-      : {};
+    // Route: Get donations by country (case insensitive)
+    app.get('/donations/:country', async (req, res) => {
+      try {
+        const countryParam = req.params.country;
+        if (!countryParam) {
+          return res.status(400).send({ error: 'Country parameter is required' });
+        }
 
-    const donations = await donationsCollection
-      .find(query)
-      .sort({ createdAt: -1 }) // অথবা _id: -1
-      .toArray();
+        // Create case-insensitive regex to match country
+        const query = { country: { $regex: new RegExp(`^${countryParam}$`, 'i') } };
 
-    res.send(donations);
-  } catch (err) {
-    console.error('Error fetching donations:', err);
-    res.status(500).send({ error: 'Error fetching donations from database' });
-  }
-});
+        // Fetch donations filtered by country, sorted latest first
+        const donations = await donationsCollection
+          .find(query)
+          .sort({ _id: -1 }) // sort by newest
+          .toArray();
+
+        res.send(donations);
+      } catch (error) {
+        console.error('Error fetching donations:', error);
+        res.status(500).send({ error: 'Failed to fetch donations' });
+      }
+    });
+
 
 // যদি আপনি আগেরটা রাখতে চান তাহলে এটা রাখতে পারেন
 // app.get('/donations', async (req, res) => {...});

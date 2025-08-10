@@ -175,25 +175,13 @@ app.delete('/myRequests/:id', verifyToken, async (req, res) => {
 
 
     // Route: Get donations by country (case insensitive)
-    app.get('/donations/:country', async (req, res) => {
+    // Route to get all donations (no filter)
+    app.get('/donations', async (req, res) => {
       try {
-        const countryParam = req.params.country;
-        if (!countryParam) {
-          return res.status(400).send({ error: 'Country parameter is required' });
-        }
-
-        // Create case-insensitive regex to match country
-        const query = { country: { $regex: new RegExp(`^${countryParam}$`, 'i') } };
-
-        // Fetch donations filtered by country, sorted latest first
-        const donations = await donationsCollection
-          .find(query)
-          .sort({ _id: -1 }) // sort by newest
-          .toArray();
-
+        const donations = await donationsCollection.find({}).toArray();
         res.send(donations);
-      } catch (error) {
-        console.error('Error fetching donations:', error);
+      } catch (err) {
+        console.error('Error fetching donations:', err);
         res.status(500).send({ error: 'Failed to fetch donations' });
       }
     });

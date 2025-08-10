@@ -173,22 +173,23 @@ app.delete('/myRequests/:id', verifyToken, async (req, res) => {
 // Get all donations
 app.get('/donations', async (req, res) => {
   try {
-    const country = req.query.country;
+    const country = req.query.country?.trim();
     const query = country
-      ? { country: { $regex: new RegExp(`^${country}$`, 'i') } }
+      ? { country: { $regex: new RegExp(country, 'i') } }
       : {};
 
     const donations = await donationsCollection
       .find(query)
-      .sort({ _id: -1 }) // নতুন ডাটা আগে দেখাবে
+      .sort({ createdAt: -1 }) // বা _id: -1 যদি createdAt না থাকে
       .toArray();
 
     res.send(donations);
   } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: 'Failed to fetch donations' });
+    console.error('Error fetching donations:', err);
+    res.status(500).send({ error: 'Error fetching donations from database' });
   }
 });
+
 
 
 

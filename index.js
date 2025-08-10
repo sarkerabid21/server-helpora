@@ -59,6 +59,7 @@ async function run() {
     // await client.connect();
 
     const volunteerCollection = client.db('jobVolunteer').collection('volunteer');
+const donationsCollection = client.db('jobVolunteer').collection('donations');
 
     // jwt token api
     
@@ -165,6 +166,15 @@ app.delete('/myRequests/:id', verifyToken, async (req, res) => {
 
   const result = await volunteerRequestsCollection.deleteOne(query);
   res.send(result);
+});
+// Get all donations
+app.get('/donations', async (req, res) => {
+  try {
+    const donations = await donationsCollection.find().toArray();
+    res.send(donations);
+  } catch (err) {
+    res.status(500).send({ error: 'Failed to fetch donations' });
+  }
 });
 
 

@@ -170,17 +170,26 @@ app.delete('/myRequests/:id', verifyToken, async (req, res) => {
   res.send(result);
 });
 // Get all donations
+// Get all donations
 app.get('/donations', async (req, res) => {
   try {
     const country = req.query.country;
-    const query = country ? { country: { $regex: new RegExp(`^${country}$`, 'i') } } : {};
-    const donations = await donationsCollection.find(query).toArray();
+    const query = country
+      ? { country: { $regex: new RegExp(`^${country}$`, 'i') } }
+      : {};
+
+    const donations = await donationsCollection
+      .find(query)
+      .sort({ _id: -1 }) // নতুন ডাটা আগে দেখাবে
+      .toArray();
+
     res.send(donations);
   } catch (err) {
     console.error(err);
     res.status(500).send({ error: 'Failed to fetch donations' });
   }
 });
+
 
 
 const volunteerRequestsCollection = client.db('jobVolunteer').collection('volunteerRequests');

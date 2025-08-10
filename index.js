@@ -173,10 +173,11 @@ app.delete('/myRequests/:id', verifyToken, async (req, res) => {
 app.get('/donations', async (req, res) => {
   try {
     const country = req.query.country;
-    const query = country ? { country } : {};
+    const query = country ? { country: { $regex: new RegExp(`^${country}$`, 'i') } } : {};
     const donations = await donationsCollection.find(query).toArray();
     res.send(donations);
   } catch (err) {
+    console.error(err);
     res.status(500).send({ error: 'Failed to fetch donations' });
   }
 });

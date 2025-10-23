@@ -15,6 +15,8 @@ const is_live = process.env.SSL_MODE === 'live' ? true : false;
 app.use(cors({
     origin: ['http://localhost:5174',
         'http://localhost:5179',
+        'https://helpora-8741c8.netlify.app',
+        'https://volunteer-server-blush.vercel.app',
         'https://job-portal-97a97.web.app',
         'https://volunteer-servers.vercel.app',
         'https://b11a11-server-side-sarkerabid21.vercel.app',],
@@ -223,10 +225,10 @@ app.post('/create-payment', async (req, res) => {
     total_amount: amount,
     currency: 'BDT',
     tran_id,
-    success_url: 'http://localhost:5174/paymentsuccess', // React page
-  fail_url: 'http://localhost:5174/paymentfailed',     // React page
-  cancel_url: 'http://localhost:5174/paymentcancelled',
-    ipn_url: 'http://localhost:5000/payment/ipn',
+    success_url: 'https://helpora-8741c8.netlify.app/paymentsuccess', // React page
+  fail_url: 'https://helpora-8741c8.netlify.app/paymentfailed',     // React page
+  cancel_url: 'https://helpora-8741c8.netlify.app/paymentcancelled',
+    ipn_url: 'https://helpora-8741c8.netlify.app/payment/ipn',
     shipping_method: 'NO',
     product_name: 'Donation Payment',
     product_category: 'Donation',
@@ -284,10 +286,10 @@ app.post('/payment/success', async (req, res) => {
 
     console.log('Donation updated & payment recorded:', updateResult);
 
-    res.redirect('http://localhost:5174/paymentsuccess');
+    res.redirect('https://helpora-8741c8.netlify.app/paymentsuccess');
   } catch (error) {
     console.error('Error updating donation:', error);
-    res.redirect('http://localhost:5174/paymentfailed');
+    res.redirect('https://helpora-8741c8.netlify.app/paymentfailed');
   }
 });
 
@@ -305,7 +307,7 @@ app.post('/payment/fail', async (req, res) => {
     date: new Date(),
   });
 
-  res.redirect('http://localhost:5174/paymentfailed');
+  res.redirect('https://helpora-8741c8.netlify.app/paymentfailed');
 });
 
 
@@ -322,7 +324,7 @@ app.post('/payment/cancel', async (req, res) => {
     date: new Date(),
   });
 
-  res.redirect('http://localhost:5174/paymentcancelled');
+  res.redirect('https://helpora-8741c8.netlify.app/paymentcancelled');
 });
 
 
@@ -340,8 +342,8 @@ app.patch('/volunteer/volunteer-posts/:id', async (req, res) => {
 });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();

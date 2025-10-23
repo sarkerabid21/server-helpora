@@ -7,10 +7,17 @@ const cookieParser = require('cookie-parser')
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
+const SSLCommerzPayment = require('sslcommerz-lts');
+const store_id = process.env.STORE_ID || 'works68f72bdcef703';
+const store_passwd = process.env.STORE_PASS || 'works68f72bdcef703@ssl';
+const is_live = process.env.SSL_MODE === 'live' ? true : false;
+
 app.use(cors({
-    origin: ['https://job-portal-97a97.web.app',
-       'https://volunteer-servers.vercel.app',
-       'https://b11a11-server-side-sarkerabid21.vercel.app'],
+    origin: ['http://localhost:5174',
+        'http://localhost:5179',
+        'https://job-portal-97a97.web.app',
+        'https://volunteer-servers.vercel.app',
+        'https://b11a11-server-side-sarkerabid21.vercel.app',],
     credentials: true
 }));
 
@@ -206,8 +213,123 @@ app.post('/volunteer/volunteer-requests', async (req, res) => {
 
   res.send({ success: true, message: 'Volunteer request submitted', insertedId: result.insertedId });
 });
+// ✅ Create Payment Session
+app.post('/create-payment', async (req, res) => {
+  const { donationId, amount, donorName, donorEmail } = req.body;
+
+  const tran_id = new ObjectId().toString();
+
+  const data = {
+    total_amount: amount,
+    currency: 'BDT',
+    tran_id,
+    success_url: 'http://localhost:5174/paymentsuccess', // React page
+  fail_url: 'http://localhost:5174/paymentfailed',     // React page
+  cancel_url: 'http://localhost:5174/paymentcancelled',
+    ipn_url: 'http://localhost:5000/payment/ipn',
+    shipping_method: 'NO',
+    product_name: 'Donation Payment',
+    product_category: 'Donation',
+    product_profile: 'general',
+    cus_name: donorName || 'Anonymous Donor',
+    cus_email: donorEmail || 'anonymous@email.com',
+    cus_add1: 'Dhaka',
+    cus_city: 'Dhaka',
+    cus_country: 'Bangladesh',
+    cus_phone: '01700000000',
+    value_a: donationId,
+  };
+
+  const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
+
+  sslcz.init(data)
+    .then(apiResponse => {
+      if (apiResponse?.GatewayPageURL) {
+        return res.send({ url: apiResponse.GatewayPageURL });
+      } else {
+        return res.status(400).send({ message: 'Failed to get payment URL' });
+      }
+    })
+    .catch(err => {
+      console.error('Payment init error:', err);
+      res.status(500).send({ message: 'Payment initialization failed' });
+    });
+});
+
+
+// ✅ Payment Success
+app.post('/payment/success', async (req, res) => {
+  console.log('✅ Payment Successful:', req.body);
+
+  try {
+    const donationId = req.body.value_a;
+    const paidAmount = parseFloat(req.body.amount);
+
+    // Update donation "raised" amount in MongoDB
+    const updateResult = await donationsCollection.updateOne(
+      { _id: new ObjectId(donationId) },
+      { $inc: { raised: paidAmount } }
+    );
+
+    // Optional: save payment record
+    await client.db('jobVolunteer').collection('payments').insertOne({
+      donationId: new ObjectId(donationId),
+      tran_id: req.body.tran_id,
+      amount: paidAmount,
+      donorName: req.body.cus_name,
+      donorEmail: req.body.cus_email,
+      status: 'Success',
+      date: new Date(),
+    });
+
+    console.log('Donation updated & payment recorded:', updateResult);
+
+    res.redirect('http://localhost:5174/paymentsuccess');
+  } catch (error) {
+    console.error('Error updating donation:', error);
+    res.redirect('http://localhost:5174/paymentfailed');
+  }
+});
+
+
+// ❌ Payment Failed
+app.post('/payment/fail', async (req, res) => {
+  console.log('❌ Payment Failed:', req.body);
+
+  await client.db('jobVolunteer').collection('payments').insertOne({
+    tran_id: req.body.tran_id,
+    amount: req.body.amount,
+    donorName: req.body.cus_name,
+    donorEmail: req.body.cus_email,
+    status: 'Failed',
+    date: new Date(),
+  });
+
+  res.redirect('http://localhost:5174/paymentfailed');
+});
+
+
+// ⚠️ Payment Cancelled
+app.post('/payment/cancel', async (req, res) => {
+  console.log('⚠️ Payment Cancelled:', req.body);
+
+  await client.db('jobVolunteer').collection('payments').insertOne({
+    tran_id: req.body.tran_id,
+    amount: req.body.amount,
+    donorName: req.body.cus_name,
+    donorEmail: req.body.cus_email,
+    status: 'Cancelled',
+    date: new Date(),
+  });
+
+  res.redirect('http://localhost:5174/paymentcancelled');
+});
+
+
+
 app.patch('/volunteer/volunteer-posts/:id', async (req, res) => {
   const id = req.params.id;
+
 
   const result = await volunteerCollection.updateOne(
     { _id: new ObjectId(id) },
@@ -218,8 +340,8 @@ app.patch('/volunteer/volunteer-posts/:id', async (req, res) => {
 });
 
     // Send a ping to confirm a successful connection
-    // await client.db("admin").command({ ping: 1 });
-    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
